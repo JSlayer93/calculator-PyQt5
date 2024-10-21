@@ -1,13 +1,25 @@
 import sys
-from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget, QHBoxLayout, QLayout, QGridLayout, QPushButton, QLineEdit
+from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget, QLayout, QTextEdit, QGridLayout, QPushButton, QLineEdit, QLabel, QVBoxLayout, QStackedWidget
 from PyQt5.QtCore import Qt
 from decimal import Decimal
+# importing json to write and read data
+import json
 
+f = open('data.json', 'r+')
+data = json.load(f)
+
+def add_new_history(equation, result):
+    # Append the new equation and result to the history list
+    update = data["history"].append({"equation": equation, "result": result})
+    f.seek(0)
+    json.dump(data, f, indent=4)
 
 # initializing Main window class to show window
 class Main_window(QMainWindow):
     def __init__(self):
         super().__init__()
+        # setting up title for window
+        self.setWindowTitle("Main window")
         self.setGeometry(450, 400, 600, 700)
         # creataing memory
         self.result = 0
@@ -34,7 +46,7 @@ class Main_window(QMainWindow):
         self.button9 = QPushButton('9')
         self.button_multiply = QPushButton('*')
         self.button_divsion = QPushButton('/')
-        self.button_unknown2 = QPushButton('?')
+        self.button_data = QPushButton('data')
         self.button_clear = QPushButton('C')
         self.button_remove = QPushButton('<')
         # creating line edit (text)
@@ -108,9 +120,9 @@ class Main_window(QMainWindow):
         self.button_divsion.setFixedWidth(button_width)
         self.button_divsion.setFixedHeight(button_height)
         grid.addWidget(self.button_divsion, 1, 2)
-        self.button_unknown2.setFixedWidth(button_width)
-        self.button_unknown2.setFixedHeight(button_height)
-        grid.addWidget(self.button_unknown2, 1, 3)
+        self.button_data.setFixedWidth(button_width)
+        self.button_data.setFixedHeight(button_height)
+        grid.addWidget(self.button_data, 1, 3)
         self.button_clear.setFixedWidth(button_width)
         self.button_clear.setFixedHeight(button_height)
         grid.addWidget(self.button_clear, 1, 1)
@@ -118,7 +130,6 @@ class Main_window(QMainWindow):
         self.button_remove.setFixedHeight(button_height)
         grid.addWidget(self.button_remove, 1, 0)
         self.text_screen.setFixedHeight(button_height)
-        self.text_screen.setFixedWidth(button_width * 4)  # Example for screen width
         grid.addWidget(self.text_screen, 0, 0, 1, 4)  # Span across 4 columns
         self.text_screen.setReadOnly(True)
 
@@ -140,7 +151,7 @@ class Main_window(QMainWindow):
         self.button_negative.clicked.connect(self.on_click)
         self.button_equal.clicked.connect(self.on_click)
         self.button_divsion.clicked.connect(self.on_click)
-        self.button_unknown2.clicked.connect(self.on_click)
+        self.button_data.clicked.connect(self.on_click)
         self.button_clear.clicked.connect(self.on_click)
         self.button_remove.clicked.connect(self.on_click)
 
@@ -180,8 +191,8 @@ class Main_window(QMainWindow):
                 self.result = 0
                 self.number = ''
                 self.text = ''
-            elif button.text() == '?':
-                pass
+            elif button.text() == 'data':
+                self.show_new_screen()
             elif button.text() == '<':
                 self.number = self.number[:-1]
                 self.text = self.text[:-1]
@@ -191,28 +202,155 @@ class Main_window(QMainWindow):
             elif button.text() == '-/+' and self.text != '' and len(self.text) == len(self.number):
                 self.number = str(Decimal(self.number) * -1)
                 self.text = str(Decimal(self.text) * -1)
-            elif button.text() == "=" and self.text != '':
+            elif button.text() == "=" and self.text != '' and self.text[0] != '0':
                 if self.number != '':
+                    add_new_history(self.text, str(eval(self.text)))
                     self.text= str(eval(self.text))
                     self.number = self.text
                 else:
+                    add_new_history(self.text[:-1], str(eval(self.text[:-1])))
                     self.text = str(eval(self.text[:-1]))
                     self.number = self.text
-            elif self.number != '' and button.text() != '-/+':
+            elif self.number != '' and button.text() != '-/+' and button.text() != '=':
                 self.number = ''
                 self.text = self.text + button.text()
             
         self.text_screen.setText(self.text)
-
-
         
+    def show_new_screen(self):
+        # Switch to the next screen
+        stacked_widget.setCurrentIndex(stacked_widget.currentIndex() + 1)
+    
+    
+class Data_Screen(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle('data')
+        self.button_history = QPushButton("History")
+        self.button_back = QPushButton('back')
+        self.initUi()
+        
+    def initUi(self):
+        # creating central widget to make layout on windows
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        # Example of setting up a QGridLayout with number buttons arranged in columns
+        horizontal_layout = QVBoxLayout()
+        # setting up button height and width
+        button_width = 600
+        button_height = 116
+        # adding button to horizontal layout
+        horizontal_layout.addWidget(self.button_history)
+        horizontal_layout.addWidget(self.button_back)
+        self.button_history.setFixedHeight(button_height)
+        self.button_back.setFixedHeight(button_height)
+        
+        # setting up css code to style buttons
+        self.setStyleSheet("""
+                           QPushButton{
+                               font-size: 40px
+                           }
+                           
+        """)
+        
+        self.button_back.clicked.connect(self.click_back)
+        self.button_history.clicked.connect(self.click_history)
+        
+        central_widget.setLayout(horizontal_layout)
+        
+    def click_back(self):
+        # Switch to the next screen
+        stacked_widget.setCurrentIndex(stacked_widget.currentIndex() - 1)
+        
+    def click_history(self):
+        # Switch to the next screen
+        stacked_widget.setCurrentIndex(stacked_widget.currentIndex() + 1)
+        
+        
+class History_Screen(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.text = QLineEdit(self)
+        self.button_back = QPushButton('back', self)
+    
+        self.initUi()
+    
+from PyQt5.QtWidgets import QMainWindow, QLineEdit, QPushButton, QVBoxLayout, QWidget
+
+class History_Screen(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.text = QTextEdit(self)
+        self.button_back = QPushButton('back', self)
+
+        self.initUi()
+
+    def initUi(self):
+        # initializing layout
+        central_widget = QWidget()
+        vertical_layout = QVBoxLayout(central_widget)
+
+        # add widgets to layout
+        vertical_layout.addWidget(self.text)
+        vertical_layout.addWidget(self.button_back)
+
+        # initializing button size
+        button_width = 600
+        button_height = 116
+
+        self.text.setFixedHeight(700 - button_height)
+        self.button_back.setFixedHeight(button_height)
+        
+        # setting up css code to style buttons
+        self.setStyleSheet("""
+                            QPushButton{
+                                font-size: 40px
+                            }
+                            QTextEdit{
+                                font-size: 30px
+                            }
+        """)
+        
+        self.button_back.clicked.connect(self.click_back)
+        
+        self.text.setReadOnly(True)
+        self.setCentralWidget(central_widget)
+        
+        # Connect the currentChanged signal of the stacked_widget to a function
+        stacked_widget.currentChanged.connect(self.on_screen_change)
+        
+    def on_screen_change(self, index):
+        # Check if the current screen is the History_Screen
+        if index == stacked_widget.indexOf(self):
+            # Call your function here
+            self.write_history()
+        
+    def write_history(self):
+        for e in data['history']:
+            self.text.setText(f"{self.text.toPlainText()}\n{e['equation']} = {e['result']}")
+            
+    def click_back(self):
+        # Switch to the next screen
+        stacked_widget.setCurrentIndex(stacked_widget.currentIndex() - 1)
+            
         
 # defining main function to show applicatoin
 def main():
+    global stacked_widget
     app = QApplication(sys.argv)
+    # create socked widget
+    stacked_widget = QStackedWidget()
     window = Main_window()
-    window.show()
-    sys.exit(app.exec_())
+    data_screen = Data_Screen()
+    history_screen = History_Screen()
+    # Add the screens to the stacked widget
+    stacked_widget.addWidget(window)
+    stacked_widget.addWidget(data_screen)
+    stacked_widget.addWidget(history_screen)
+    # make window stay and now close
+    stacked_widget.show()
+    # close window only when i close application
+    sys.exit((app.exec_(), f.close))
     
 # only calling main function if we are running the code (not when we module, or import it)
 if __name__ == "__main__":
