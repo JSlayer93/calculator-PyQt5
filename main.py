@@ -2,10 +2,24 @@ import sys
 from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget, QLayout, QTextEdit, QGridLayout, QPushButton, QLineEdit, QLabel, QVBoxLayout, QStackedWidget
 from PyQt5.QtCore import Qt
 from decimal import Decimal
+import os
 # importing json to write and read data
 import json
 
-f = open('data.json', 'r+')
+def resource_path(relative_path):
+    """ Get the absolute path to the resource, accounting for PyInstaller packaging """
+    if getattr(sys, 'frozen', False):
+        # If the application is packaged
+        base_path = sys._MEIPASS
+    else:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
+# Use resource_path to get the path to data.json
+data_file_path = resource_path('data.json')
+
+f = open(data_file_path, 'r+')
 data = json.load(f)
 
 def add_new_history(equation, result):
